@@ -1,0 +1,17 @@
+logs/*
+logs/cluster/*
+.snakemake/
+diff_binding/
+scripts/.snakemake*
+snakemake.err
+snakemake.log
+*.svg
+mogrify.log
+README.html
+config.yaml
+*.*.swp
+
+Rplots.pdf
+!logs/.gitkeep
+!logs/cluster/
+!logs/cluster/.gitkeep
