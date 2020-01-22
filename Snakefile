@@ -2,6 +2,7 @@
 
 import yaml
 import itertools
+from math import log2
 
 configfile: "config.yaml"
 
@@ -38,6 +39,7 @@ if comparisons_si:
     conditiongroups_si = list(itertools.chain(*[d.keys() for d in comparisons_si]))
 
 def get_samples(search_dict=CHIPS["denominator"],
+                paired_search_dict=None,
                 passing=False,
                 spikein=False,
                 paired=False,
@@ -48,7 +50,7 @@ def get_samples(search_dict=CHIPS["denominator"],
         search_dict = {k:v for k,v in search_dict.items() if v["spikein"]}
     if paired:
         search_dict = {k:v for k,v in search_dict.items() \
-                if v["control"] in get_samples(search_dict=INPUTS["denominator"],
+                if v["control"] in get_samples(search_dict=paired_search_dict,
                                                passing=passing,
                                                spikein=spikein,
                                                paired=False)}
@@ -56,16 +58,30 @@ def get_samples(search_dict=CHIPS["denominator"],
         search_dict = {k:v for k,v in search_dict.items() if v["group"] in groups}
     return search_dict
 
+onsuccess:
+    shell("(./mogrify.sh) > mogrify.log")
+
+localrules:
+    target,
+    map_counts_to_annotations,
+    combine_annotation_counts,
+
 rule target:
     input:
-        expand(expand("diff_binding/{{annotation}}/{condition}-v-{control}/{condition}-v-{control}_allsamples-{{species}}-{{factor}}-chipseq-counts-{{annotation}}.tsv.gz", zip, condition=conditiongroups, control=controlgroups),
-                species=["experimental", "spikein"],
-                factor=list(FACTORS.values()),
-                annotation=list(config["differential_occupancy"]["annotations"].keys()))
+        expand(expand("diff_binding/{{annotation}}/{condition}-v-{control}/libsizenorm/{condition}-v-{control}_{{nfactor}}-over-{{dfactor}}-chipseq-libsizenorm-{{annotation}}-diffbind-results-all.tsv",
+            zip, condition=conditiongroups, control=controlgroups),
+            annotation=list(config["differential_occupancy"]["annotations"].keys()),
+            nfactor=FACTORS["numerator"],
+            dfactor=FACTORS["denominator"]) if comparisons else [],
+        expand(expand("diff_binding/{{annotation}}/{condition}-v-{control}/spikenorm/{condition}-v-{control}_{{nfactor}}-over-{{dfactor}}-chipseq-spikenorm-{{annotation}}-diffbind-results-all.tsv",
+            zip, condition=conditiongroups_si, control=controlgroups_si),
+            annotation=list(config["differential_occupancy"]["annotations"].keys()),
+            nfactor=FACTORS["numerator"],
+            dfactor=FACTORS["denominator"]) if comparisons_si else [],
 
 rule map_counts_to_annotations:
     input:
-        bed = lambda wc: config["differential_occupancy"]["annotations"][wc.annotation],
+        bed = lambda wc: config["differential_occupancy"]["annotations"][wc.annotation]["experimental-annotation" if wc.species == "experimental" else "spikein-annotation"],
         bedgraph =
             lambda wc:  {"experimental":
                             {True: denominator_pipe("coverage/counts/{sample}_{factor}-chipseq-counts-midpoints.bedgraph"),
@@ -102,3 +118,57 @@ rule combine_annotation_counts:
          cat <(echo -e "chrom\tstart\tend\tname\tscore\tstrand\t{params.names}" ) - | \
          pigz -f > {output}) &> {log}
         """
+
+rule differential_binding:
+    input:
+        exp_table_denominator = "diff_binding/{annotation}/{condition}-v-{control}/{condition}-v-{control}_allsamples-experimental-{dfactor}-chipseq-counts-{annotation}.tsv.gz",
+        exp_table_numerator = "diff_binding/{annotation}/{condition}-v-{control}/{condition}-v-{control}_allsamples-experimental-{nfactor}-chipseq-counts-{annotation}.tsv.gz",
+        spike_table_denominator = lambda wc: [] if wc.norm=="libsizenorm" else "diff_binding/{annotation}/{condition}-v-{control}/{condition}-v-{control}_allsamples-spikein-{dfactor}-chipseq-counts-{annotation}.tsv.gz",
+        spike_table_numerator = lambda wc: [] if wc.norm=="libsizenorm" else "diff_binding/{annotation}/{condition}-v-{control}/{condition}-v-{control}_allsamples-spikein-{nfactor}-chipseq-counts-{annotation}.tsv.gz",
+    output:
+        counts_norm = "diff_binding/{annotation}/{condition}-v-{control}/{norm}/{condition}-v-{control}_{nfactor}-over-{dfactor}-chipseq-{norm}-{annotation}-chipseq-counts-sizefactornorm.tsv",
+        counts_rlog = "diff_binding/{annotation}/{condition}-v-{control}/{norm}/{condition}-v-{control}_{nfactor}-over-{dfactor}-chipseq-{norm}-{annotation}-chipseq-counts-rlogtransform.tsv",
+        results_all = "diff_binding/{annotation}/{condition}-v-{control}/{norm}/{condition}-v-{control}_{nfactor}-over-{dfactor}-chipseq-{norm}-{annotation}-diffbind-results-all.tsv",
+        results_up = "diff_binding/{annotation}/{condition}-v-{control}/{norm}/{condition}-v-{control}_{nfactor}-over-{dfactor}-chipseq-{norm}-{annotation}-diffbind-results-up.tsv",
+        results_down = "diff_binding/{annotation}/{condition}-v-{control}/{norm}/{condition}-v-{control}_{nfactor}-over-{dfactor}-chipseq-{norm}-{annotation}-diffbind-results-down.tsv",
+        results_nonsig = "diff_binding/{annotation}/{condition}-v-{control}/{norm}/{condition}-v-{control}_{nfactor}-over-{dfactor}-chipseq-{norm}-{annotation}-diffbind-results-nonsignificant.tsv",
+        bed_all = "diff_binding/{annotation}/{condition}-v-{control}/{norm}/{condition}-v-{control}_{nfactor}-over-{dfactor}-chipseq-{norm}-{annotation}-diffbind-results-all.bed",
+        bed_up = "diff_binding/{annotation}/{condition}-v-{control}/{norm}/{condition}-v-{control}_{nfactor}-over-{dfactor}-chipseq-{norm}-{annotation}-diffbind-results-up.bed",
+        bed_down = "diff_binding/{annotation}/{condition}-v-{control}/{norm}/{condition}-v-{control}_{nfactor}-over-{dfactor}-chipseq-{norm}-{annotation}-diffbind-results-down.bed",
+        bed_nonsig = "diff_binding/{annotation}/{condition}-v-{control}/{norm}/{condition}-v-{control}_{nfactor}-over-{dfactor}-chipseq-{norm}-{annotation}-diffbind-results-nonsignificant.bed",
+        qc_plots = "diff_binding/{annotation}/{condition}-v-{control}/{norm}/{condition}-v-{control}_{nfactor}-over-{dfactor}-chipseq-{norm}-{annotation}-diffbind-qcplots.svg",
+    params:
+        samples_denominator = lambda wc: list(get_samples(search_dict=SAMPLES["denominator"],
+                                                          passing=True,
+                                                          spikein=(True if wc.norm=="spikenorm" else False),
+                                                          groups=[wc.control, wc.condition]).keys()),
+        samples_numerator = lambda wc: list(get_samples(search_dict=SAMPLES["numerator"],
+                                                        passing=True,
+                                                        spikein=(True if wc.norm=="spikenorm" else False),
+                                                        groups=[wc.control, wc.condition]).keys()),
+        conditions_denominator = lambda wc: [v["group"] for k,v in get_samples(search_dict=SAMPLES["denominator"],
+                                                                               passing=True,
+                                                                               spikein=(True if wc.norm=="spikenorm" else False),
+                                                                               groups=[wc.control, wc.condition]).items()],
+        conditions_numerator = lambda wc: [v["group"] for k,v in get_samples(search_dict=SAMPLES["numerator"],
+                                                                             passing=True,
+                                                                             spikein=(True if wc.norm=="spikenorm" else False),
+                                                                             groups=[wc.control, wc.condition]).items()],
+        rna_sources_denominator = lambda wc: [("input" if k in INPUTS["denominator"] else "ChIP") \
+                for k in get_samples(search_dict=SAMPLES["denominator"],
+                                     passing=True,
+                                     spikein=(True if wc.norm=="spikenorm" else False),
+                                     groups=[wc.control, wc.condition]).keys()],
+        rna_sources_numerator = lambda wc: [("input" if k in INPUTS["numerator"] else "ChIP") \
+                for k in get_samples(search_dict=SAMPLES["numerator"],
+                                     passing=True,
+                                     spikein=(True if wc.norm=="spikenorm" else False),
+                                     groups=[wc.control, wc.condition]).keys()],
+        alpha = config["differential_occupancy"]["fdr"],
+        lfc = log2(config["differential_occupancy"]["fold-change-threshold"])
+    conda:
+        "envs/diff_binding.yaml"
+    script:
+        "scripts/differential_binding_chipseq_factornorm.R"
+
+
