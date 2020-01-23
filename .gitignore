@@ -1,6 +1,7 @@
 logs/*
 logs/cluster/*
 .snakemake/
+coverage/
 diff_binding/
 scripts/.snakemake*
 snakemake.err

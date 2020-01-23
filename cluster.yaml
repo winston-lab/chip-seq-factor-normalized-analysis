@@ -1,0 +1,18 @@
+---
+__default__ :
+    queue : "short"
+    time : 10
+    n : 1
+    mem : 200
+    name : "{rule}.{wildcards}"
+    log : "logs/cluster/{rule}.{wildcards}.log"
+    err : "logs/cluster/{rule}.{wildcards}.err"
+
+differential_binding:
+    time: 3
+    mem: 1000
+
+ratio_coverage:
+    time: 10
+    mem: 10000
+

@@ -8,3 +8,4 @@ dependencies:
   - r-svglite=1.2.2
   - r-gridextra=2.3
   - bioconductor-deseq2=1.26.0
+  - bioconductor-apeglm=1.8.0
