@@ -13,6 +13,6 @@ differential_binding:
     mem: 1000
 
 ratio_coverage:
-    time: 10
+    time: 30
     mem: 10000
 

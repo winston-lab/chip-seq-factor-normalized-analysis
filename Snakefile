@@ -93,12 +93,12 @@ rule target:
             annotation=list(config["differential_occupancy"]["annotations"].keys()),
             nfactor=FACTORS["numerator"],
             dfactor=FACTORS["denominator"]) if comparisons_si else [],
-        expand("coverage/ratio_coverage/libsizenorm/{group}_{nfactor}-over-{dfactor}_libsizenorm-ratio-coverage-window-{windowsize}.bedgraph",
+        expand("coverage/ratio_coverage/libsizenorm/{group}_{nfactor}-over-{dfactor}_libsizenorm-ratio-coverage-window-{windowsize}.bw",
                 nfactor=FACTORS["numerator"],
                 dfactor=FACTORS["denominator"],
                 group=set(conditiongroups + controlgroups),
                 windowsize=config["coverage_binsize"]) if comparisons else [],
-        expand("coverage/ratio_coverage/spikenorm/{group}_{nfactor}-over-{dfactor}_spikenorm-ratio-coverage-window-{windowsize}.bedgraph",
+        expand("coverage/ratio_coverage/spikenorm/{group}_{nfactor}-over-{dfactor}_spikenorm-ratio-coverage-window-{windowsize}.bw",
                 nfactor=FACTORS["numerator"],
                 dfactor=FACTORS["denominator"],
                 group=set(conditiongroups + controlgroups),
@@ -270,4 +270,16 @@ rule ratio_coverage:
         "envs/diff_binding.yaml"
     script:
         "scripts/chipseq_shrunken_ratio_coverage.R"
+
+rule bedgraph_to_bigwig:
+    input:
+        bedgraph = "coverage/ratio_coverage/{norm}/{group}_{nfactor}-over-{dfactor}_{norm}-ratio-coverage-window-{windowsize}.bedgraph",
+        fasta = lambda wc: os.path.abspath(annotation_pipe(config_annotation["genome"]["fasta"]))
+    output:
+        "coverage/ratio_coverage/{norm}/{group}_{nfactor}-over-{dfactor}_{norm}-ratio-coverage-window-{windowsize}.bw",
+    log :
+        "logs/bedgraph_to_bigwig/bedgraph_to_bigwig-{group}_{nfactor}-over-{dfactor}-{norm}-{windowsize}.log"
+    shell: """
+        (bedGraphToBigWig {input.bedgraph} <(faidx {input.fasta} -i chromsizes) {output}) &> {log}
+        """
 
