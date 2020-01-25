@@ -90,4 +90,3 @@ rule bedgraph_to_bigwig:
         (bedGraphToBigWig {input.bedgraph} <(faidx {input.fasta} -i chromsizes) {output}) &> {log}
         """
 
-

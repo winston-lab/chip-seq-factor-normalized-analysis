@@ -41,6 +41,8 @@ CHIPS = {   "denominator": config_d["chip_samples"],
 SAMPLES = { "denominator": {**INPUTS["denominator"], **CHIPS["denominator"]},
             "numerator": {**INPUTS["numerator"], **CHIPS["numerator"]}}
 
+FIGURES = config["figures"]
+
 comparisons = config["comparisons"]["libsizenorm"]
 if comparisons:
     controlgroups = list(itertools.chain(*[d.values() for d in comparisons]))
@@ -52,7 +54,7 @@ if comparisons_si:
     assert config_d["spike_in"]["fasta"] == config_n["spike_in"]["fasta"], "Spike-in normalized comparisons are specified, but numerator and denominator spike-in FASTA files do not match."
 
 def get_samples(search_dict=CHIPS["denominator"],
-                paired_search_dict=None,
+                paired_search_dict=INPUTS["denominator"],
                 passing=False,
                 spikein=False,
                 paired=False,
@@ -73,6 +75,7 @@ def get_samples(search_dict=CHIPS["denominator"],
 
 include: "rules/differential_binding.smk"
 include: "rules/genome_coverage.smk"
+include: "rules/data_visualization.smk"
 
 onsuccess:
     shell("(./mogrify.sh) > mogrify.log")
@@ -82,23 +85,36 @@ localrules: target
 rule target:
     input:
         expand(expand("diff_binding/{{annotation}}/{condition}-v-{control}/libsizenorm/{condition}-v-{control}_{{nfactor}}-over-{{dfactor}}-chipseq-libsizenorm-{{annotation}}-diffbind-results-all.tsv",
-            zip, condition=conditiongroups, control=controlgroups),
-            annotation=list(config["differential_occupancy"]["annotations"].keys()),
-            nfactor=FACTORS["numerator"],
-            dfactor=FACTORS["denominator"]) if comparisons else [],
+               zip, condition=conditiongroups, control=controlgroups),
+               annotation=list(config["differential_occupancy"]["annotations"].keys()),
+               nfactor=FACTORS["numerator"],
+               dfactor=FACTORS["denominator"]) if comparisons else [],
         expand(expand("diff_binding/{{annotation}}/{condition}-v-{control}/spikenorm/{condition}-v-{control}_{{nfactor}}-over-{{dfactor}}-chipseq-spikenorm-{{annotation}}-diffbind-results-all.tsv",
-            zip, condition=conditiongroups_si, control=controlgroups_si),
-            annotation=list(config["differential_occupancy"]["annotations"].keys()),
-            nfactor=FACTORS["numerator"],
-            dfactor=FACTORS["denominator"]) if comparisons_si else [],
+               zip, condition=conditiongroups_si, control=controlgroups_si),
+               annotation=list(config["differential_occupancy"]["annotations"].keys()),
+               nfactor=FACTORS["numerator"],
+               dfactor=FACTORS["denominator"]) if comparisons_si else [],
         expand("coverage/ratio_coverage/libsizenorm/{group}_{nfactor}-over-{dfactor}_libsizenorm-ratio-coverage-window-{windowsize}.bw",
-                nfactor=FACTORS["numerator"],
-                dfactor=FACTORS["denominator"],
-                group=set(conditiongroups + controlgroups),
-                windowsize=config["coverage_binsize"]) if comparisons else [],
+               nfactor=FACTORS["numerator"],
+               dfactor=FACTORS["denominator"],
+               group=set(conditiongroups + controlgroups),
+               windowsize=config["coverage_binsize"]) if comparisons else [],
         expand("coverage/ratio_coverage/spikenorm/{group}_{nfactor}-over-{dfactor}_spikenorm-ratio-coverage-window-{windowsize}.bw",
-                nfactor=FACTORS["numerator"],
-                dfactor=FACTORS["denominator"],
-                group=set(conditiongroups + controlgroups),
-                windowsize=config["coverage_binsize"]) if comparisons_si else []
-
+               nfactor=FACTORS["numerator"],
+               dfactor=FACTORS["denominator"],
+               group=set(conditiongroups + controlgroups),
+               windowsize=config["coverage_binsize"]) if comparisons_si else [],
+        expand(expand("datavis/{{figure}}/libsizenorm/{condition}-v-{control}/{{strand}}/{{figure}}_{condition}-v-{control}_{{nfactor}}-over-{{dfactor}}_libsizenorm-ratio-{{strand}}-ridgelines.svg",
+               zip, condition=conditiongroups, control=controlgroups),
+               figure=FIGURES,
+               strand=["midpoints-input-subtracted",
+                       "protection-input-subtracted"],
+               nfactor=FACTORS["numerator"],
+               dfactor=FACTORS["denominator"]) if comparisons and config["plot_figures"] else [],
+        expand(expand("datavis/{{figure}}/spikenorm/{condition}-v-{control}/{{strand}}/{{figure}}_{condition}-v-{control}_{{nfactor}}-over-{{dfactor}}_spikenorm-ratio-{{strand}}-ridgelines.svg",
+               zip, condition=conditiongroups_si, control=controlgroups_si),
+               figure=FIGURES,
+               strand=["midpoints-input-subtracted",
+                       "protection-input-subtracted"],
+               nfactor=FACTORS["numerator"],
+               dfactor=FACTORS["denominator"]) if comparisons_si and config["plot_figures"] else []
