@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+localrules:
+    compute_matrix,
+    cat_matrices
+
 rule compute_matrix:
     input:
         annotation = lambda wc: FIGURES[wc.figure]["annotations"][wc.annotation]["path"],
@@ -72,6 +76,4 @@ rule plot_figures:
         "../envs/tidyverse.yaml"
     script:
         "../scripts/chipseq_factornorm_datavis.R"
-
-
 

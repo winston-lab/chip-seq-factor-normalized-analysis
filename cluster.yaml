@@ -16,3 +16,7 @@ ratio_coverage:
     time: 30
     mem: 10000
 
+plot_figures:
+    time: 15
+    mem: 10000
+
