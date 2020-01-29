@@ -245,44 +245,44 @@ main = function(exp_table_denominator="H3_chipseq_allsamples-counts-midpoints-wi
         write_tsv(bedgraph_out,
                   col_names=FALSE)
 
-    shrinkage_plot = ggplot(data=results_df,
-           aes(x=log2FoldChange_original,
-               y=log2FoldChange_shrunken,
-               color=log10(baseMean))) +
-        geom_hline(yintercept = 0,
-                   size=0.2,
-                   color="gray70") +
-        geom_vline(xintercept = 0,
-                   size=0.2,
-                   color="gray70") +
-        geom_abline(slope=1,
-                    intercept=0,
-                    size=0.2,
-                    color="gray70") +
-        geom_point(alpha=0.5,
-                   shape=16,
-                   size=0.5) +
-        scale_color_viridis_c(name=expression("log"[10]("mean counts"))) +
-        scale_x_continuous(name=bquote("log"[2] ~
-                                           textstyle(frac(.(nfactor), .(dfactor))) ~ ", original"),
-                           breaks=scales::pretty_breaks(5)) +
-        scale_y_continuous(name=bquote("log"[2] ~
-                                           textstyle(frac(.(nfactor), .(dfactor))) ~ ", shrunken"),
-                           breaks=scales::pretty_breaks(5)) +
-        theme_light() +
-        theme(panel.grid=element_blank(),
-              axis.text=element_text(color="black"),
-              legend.position=c(0.01,0.99),
-              legend.background = element_blank(),
-              legend.justification=c(0,1),
-              axis.title.y=element_text(angle=0,
-                                        vjust=0.5,
-                                        hjust=1))
-
+    # shrinkage_plot = ggplot(data=results_df,
+    #        aes(x=log2FoldChange_original,
+    #            y=log2FoldChange_shrunken,
+    #            color=log10(baseMean))) +
+    #     geom_hline(yintercept = 0,
+    #                size=0.2,
+    #                color="gray70") +
+    #     geom_vline(xintercept = 0,
+    #                size=0.2,
+    #                color="gray70") +
+    #     geom_abline(slope=1,
+    #                 intercept=0,
+    #                 size=0.2,
+    #                 color="gray70") +
+    #     geom_point(alpha=0.5,
+    #                shape=16,
+    #                size=0.5) +
+    #     scale_color_viridis_c(name=expression("log"[10]("mean counts"))) +
+    #     scale_x_continuous(name=bquote("log"[2] ~
+    #                                        textstyle(frac(.(nfactor), .(dfactor))) ~ ", original"),
+    #                        breaks=scales::pretty_breaks(5)) +
+    #     scale_y_continuous(name=bquote("log"[2] ~
+    #                                        textstyle(frac(.(nfactor), .(dfactor))) ~ ", shrunken"),
+    #                        breaks=scales::pretty_breaks(5)) +
+    #     theme_light() +
+    #     theme(panel.grid=element_blank(),
+    #           axis.text=element_text(color="black"),
+    #           legend.position=c(0.01,0.99),
+    #           legend.background = element_blank(),
+    #           legend.justification=c(0,1),
+    #           axis.title.y=element_text(angle=0,
+    #                                     vjust=0.5,
+    #                                     hjust=1))
 
     qc_plots = arrangeGrob(mean_sd_plot_pre,
                            mean_sd_plot_post,
-                           shrinkage_plot,
+                           # shrinkage_plot,
+                           grid::nullGrob(),
                            layout_matrix=rbind(c(1,3),
                                                c(2,3)),
                            widths=c(0.5,1))
