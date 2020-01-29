@@ -1,0 +1,88 @@
+---
+
+denominator_pipe: /n/groups/winston/jc459/spn1/chipseq-rpb1
+numerator_pipe: /n/groups/winston/jc459/spn1/chipseq-ser2p
+
+input_samples:
+    denominator:
+        - non-depleted-untagged-input-3
+        - non-depleted-untagged-input-4
+        - depleted-untagged-input-3
+        - depleted-untagged-input-4
+    numerator:
+        - non-depleted-untagged-input-3
+        - non-depleted-untagged-input-4
+        - depleted-untagged-input-3
+        - depleted-untagged-input-4
+
+chip_samples:
+    denominator:
+        - non-depleted-Rpb1-IP-3
+        - non-depleted-Rpb1-IP-4
+        - depleted-Rpb1-IP-3
+        - depleted-Rpb1-IP-4
+    numerator:
+        - non-depleted-Ser2P-IP-1
+        - non-depleted-Ser2P-IP-2
+        - depleted-Ser2P-IP-1
+        - depleted-Ser2P-IP-2
+
+comparisons:
+    libsizenorm:
+        - depleted: non-depleted
+    spikenorm:
+        - depleted: non-depleted
+
+coverage_binsize: 20
+
+differential_occupancy:
+    fdr: 0.1
+    fold-change-threshold: 1
+    annotations:
+        verified-coding-genes:
+            experimental-annotation: /n/groups/winston/jc459/intragenic/genome/annotations/Scer_transcripts_w_verifiedORFs.bed
+            spikein-annotation: /n/groups/winston/jc459/spt5/genome/annotations/S_pombe_alltranscripts-adjustedTSS.bed
+
+plot_figures: True  # [True|False] plot heatmaps and metagenes?
+figures:
+    verified-transcripts-nonoverlapping-slopR300-TSS:  # [STRING] name of figure. Do not include underscores ("_")
+        annotations:
+            nonoverlapping-coding-genes:  # [STRING] name of region. Do not include underscores ("_"). More than one region can be plotted.
+                path: /n/groups/winston/jc459/intragenic/genome/annotations/Scer_transcripts_w_verifiedORFs-nonoverlapping_slopR300.bed  # path to BED6 file of regions
+                label: nonoverlapping coding genes  # [STRING] label for region
+        parameters:
+            type: absolute  # [absolute|scaled] Plot absolute distances, or scale all annotations to the same length. For MNase-seq you almost always want absolute distance
+            binsize: 20  # [INT] binsize to summarise data
+            binstat: mean  # [mean|median|min|max|sum|std] operation used to summarise data
+            refpoint: TSS  # [TSS|TES|center] reference point in region. TSS and TES correspond to the 5' and 3' ends, respectively.
+            refpointlabel: TSS  # [STRING] label for reference point
+            upstream: 400  # [INT] nucleotides upstream of reference point to plot. Must be a multiple of the binsize.
+            dnstream: 1500  # [INT] maximum nucleotides downstream of reference point to plot. Must be a multiple of the binsize.
+            nan_afterend: True  # [True|False] Should data after the end of the annotation be left out? Useful for length-sorted heatmaps.
+            colorbar_quantile_low: 0.02  # [FLOAT in (0,1)] Percentile of the data to set as the maximum of the colorbar in heatmaps
+            colorbar_quantile_high: 0.99999
+            length_sort: True
+            heatmap_colormap: inferno  # [viridis|inferno|magma|plasma] colormap for heatmaps
+            ridgeline_colormap: viridis  # [viridis|inferno|magma|plasma] colormap for ridgelines
+    verified-transcripts-nonoverlapping-scaled:
+        annotations:
+            nonoverlapping-coding-genes:
+                path: /n/groups/winston/jc459/intragenic/genome/annotations/Scer_transcripts_w_verifiedORFs-nonoverlapping.bed
+                label: nonoverlapping coding genes
+                n_clusters: 1
+        parameters:
+            type: scaled # absolute | scaled
+            binsize : 20
+            binstat : mean # mean | median | min | max | sum | std
+            scaled_length: 2000 # int
+            upstream : 500 # int
+            dnstream : 500 # int
+            refpointlabel : TSS # string: label for 5prime reference point
+            endlabel : CPS # string: label for 3prime reference point
+            colorbar_quantile_low: 0.02  # [FLOAT in (0,1)] Percentile of the data to set as the maximum of the colorbar in heatmaps
+            colorbar_quantile_high: 0.99999
+            length_sort: True
+            heatmap_colormap: inferno  # [viridis|inferno|magma|plasma] colormap for heatmaps
+            ridgeline_colormap: viridis  # [viridis|inferno|magma|plasma] colormap for ridgelines
+
+threads: 4

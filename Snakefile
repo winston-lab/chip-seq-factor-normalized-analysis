@@ -32,11 +32,16 @@ FACTORS = { "denominator": config_d["factor"],
             "numerator": config_n["factor"]}
 assert FACTORS["denominator"] != FACTORS["numerator"], "Numerator factor and denominator factor cannot have the same name."
 
-INPUTS = {  "denominator": config_d["input_samples"],
-            "numerator": config_n["input_samples"]}
+assert all(x in config_d["input_samples"] for x in config["input_samples"]["denominator"]), "Not all denominator input samples specified are present in denominator workflow."
+assert all(x in config_n["input_samples"] for x in config["input_samples"]["numerator"]), "Not all numerator input samples specified are present in numerator workflow."
+assert all(x in config_d["chip_samples"] for x in config["chip_samples"]["denominator"]), "Not all denominator ChIP samples specified are present in denominator workflow."
+assert all(x in config_n["chip_samples"] for x in config["chip_samples"]["numerator"]), "Not all numerator ChIP samples specified are present in numerator workflow."
 
-CHIPS = {   "denominator": config_d["chip_samples"],
-            "numerator": config_n["chip_samples"]}
+INPUTS = {  "denominator": {k:v for k,v in config_d["input_samples"].items() if k in config["input_samples"]["denominator"]},
+            "numerator": {k:v for k,v in config_n["input_samples"].items() if k in config["input_samples"]["numerator"]}}
+
+CHIPS = {   "denominator": {k:v for k,v in config_d["chip_samples"].items() if k in config["chip_samples"]["denominator"]},
+            "numerator": {k:v for k,v in config_n["chip_samples"].items() if k in config["chip_samples"]["numerator"]}}
 
 SAMPLES = { "denominator": {**INPUTS["denominator"], **CHIPS["denominator"]},
             "numerator": {**INPUTS["numerator"], **CHIPS["numerator"]}}
