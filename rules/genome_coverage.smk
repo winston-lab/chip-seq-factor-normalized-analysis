@@ -3,6 +3,7 @@
 localrules:
     map_counts_to_windows,
     combine_window_counts,
+    bedgraph_to_bigwig
 
 rule map_counts_to_windows:
     input:
