@@ -1,6 +1,7 @@
 library(tidyverse)
 library(magrittr)
 library(DESeq2)
+library(ashr)
 library(gridExtra)
 
 get_countdata = function(path_denominator,
@@ -26,8 +27,7 @@ get_countdata = function(path_denominator,
     return(df)
 }
 
-initialize_dds = function(comparison = "enrichment_vs_enrichment",
-                          data_path_denominator,
+initialize_dds = function(data_path_denominator,
                           data_path_numerator,
                           samples_denominator,
                           samples_numerator,
@@ -37,7 +37,6 @@ initialize_dds = function(comparison = "enrichment_vs_enrichment",
                           rna_sources_numerator,
                           condition_id,
                           control_id){
-    if (comparison=="enrichment_vs_enrichment"){
         dds = DESeqDataSetFromMatrix(countData = get_countdata(path_denominator=data_path_denominator,
                                                                path_numerator=data_path_numerator,
                                                                samples_denominator=samples_denominator,
@@ -59,27 +58,6 @@ initialize_dds = function(comparison = "enrichment_vs_enrichment",
                                                           row.names = c(paste0(samples_denominator, "_D"),
                                                                         paste0(samples_numerator, "_N"))),
                                      design = ~ rna_source * chip_factor * condition)
-    } else {
-        indices_denominator = (conditions_denominator == ifelse(comparison=="condition", condition_id, control_id))
-        indices_numerator = (conditions_numerator == ifelse(comparison=="condition", condition_id, control_id))
-        dds = DESeqDataSetFromMatrix(countData = get_countdata(path_denominator=data_path_denominator,
-                                                               path_numerator=data_path_numerator,
-                                                               samples_denominator=samples_denominator[indices_denominator],
-                                                               samples_numerator=samples_numerator[indices_numerator]),
-                                     colData = data.frame(rna_source = factor(c(rna_sources_denominator[indices_denominator],
-                                                                                rna_sources_numerator[indices_numerator]),
-                                                                              levels = c("input",
-                                                                                         "ChIP")),
-                                                          chip_factor = factor(c(rep("denominator",
-                                                                                     sum(indices_denominator)),
-                                                                                 rep("numerator",
-                                                                                     sum(indices_numerator))),
-                                                                               levels=c("denominator",
-                                                                                        "numerator")),
-                                                          row.names = c(paste0(samples_denominator[indices_denominator], "_D"),
-                                                                        paste0(samples_numerator[indices_numerator], "_N"))),
-                                     design = ~ rna_source * chip_factor)
-    }
     return(dds)
 }
 
@@ -163,16 +141,44 @@ extract_deseq_results = function(dds,
                                  enrichment,
                                  alpha,
                                  lfc){
-    results(dds,
+    control_enrichment = lfcShrink(dds,
+                                   contrast=c(0,0,0,0,1,0,0,0),
+                                   type="ashr") %>%
+        as.data.frame() %>%
+        rownames_to_column(var="row") %>%
+        as_tibble() %>%
+        select(row,
+               control_enrichment = log2FoldChange,
+               control_enrichment_SE = lfcSE)
+    condition_enrichment = lfcShrink(dds,
+                                   contrast=c(0,0,0,0,1,0,0,1),
+                                   type="ashr") %>%
+        as.data.frame() %>%
+        rownames_to_column(var="row") %>%
+        as_tibble() %>%
+        select(row,
+               condition_enrichment = log2FoldChange,
+               condition_enrichment_SE = lfcSE)
+
+    results = results(dds,
             alpha=alpha,
             lfcThreshold=lfc,
-            altHypothesis="greaterAbs",
-            tidy=TRUE) %>%
+            altHypothesis="greaterAbs")
+
+    lfcShrink(dds,
+              res=results,
+              type="ashr") %>%
+        as.data.frame() %>%
+        rownames_to_column(var="row") %>%
         as_tibble() %>%
+        mutate(stat=results[["stat"]]) %>%
+        select(c("row", names(results))) %>%
+        left_join(control_enrichment,
+                  by="row") %>%
+        left_join(condition_enrichment,
+                  by="row") %>%
         left_join(annotations, .,
                   by=c("index"="row")) %>%
-        left_join(enrichment, .,
-                  by=c("row"="index")) %>%
         arrange(padj) %>%
         mutate(name = if_else(name==".",
                               paste0("peak_", row_number()),
@@ -180,7 +186,7 @@ extract_deseq_results = function(dds,
                score = as.integer(pmin(-125*log2(padj), 1000))) %>%
         mutate_at(vars(pvalue, padj), ~(-log10(.))) %>%
         mutate_if(is.double, round, 3) %>%
-        select(index=row, chrom, start, end, name, score, strand,
+        select(index, chrom, start, end, name, score, strand,
                log2FC_enrichment=log2FoldChange, lfc_SE=lfcSE,
                stat, log10_pval=pvalue, log10_padj=padj, mean_expr=baseMean,
                condition_enrichment, condition_enrichment_SE,
@@ -249,7 +255,7 @@ plot_volcano = function(df = results_df_filtered,
         geom_vline(xintercept = c(-lfc, lfc), color="grey70", linetype="dashed") +
         stat_bin_hex(data = df,
                      geom = "point",
-                     aes(x = !!xvar, y = !!yvar, color=log10(..count..)),
+                     aes(x = !!xvar, y = !!yvar, color=..count..),
                      binwidth = c(0.01, 0.1),
                      alpha=0.8, stroke=0, size=0.7) +
         geom_hline(yintercept = -log10(alpha), color="red", linetype="dashed") +
@@ -295,15 +301,7 @@ main = function(exp_table_denominator="depleted-v-non-depleted_allsamples-experi
         rownames_to_column(var="index") %>%
         mutate(chrom = str_replace(chrom, "-minus$|-plus$", ""))
 
-    # initialize 3 DESeq datasets,
-    # for control numerator vs. denominator,
-    # condition numerator vs. denominator,
-    # and condition vs. control
-    #
-    # the two numerator vs. denominator comparisons are only used to
-    # get regularized enrichment estimates for the output tables
-    dds = initialize_dds(comparison = "enrichment_vs_enrichment",
-                         data_path_denominator=exp_table_denominator,
+    dds = initialize_dds(data_path_denominator=exp_table_denominator,
                          data_path_numerator=exp_table_numerator,
                          samples_denominator,
                          samples_numerator,
@@ -313,32 +311,8 @@ main = function(exp_table_denominator="depleted-v-non-depleted_allsamples-experi
                          rna_sources_numerator,
                          condition_id = condition,
                          control_id = control)
-    dds_condition = initialize_dds(comparison = "condition",
-                                   data_path_denominator = exp_table_denominator,
-                                   data_path_numerator = exp_table_numerator,
-                                   samples_denominator,
-                                   samples_numerator,
-                                   conditions_denominator,
-                                   conditions_numerator,
-                                   rna_sources_denominator,
-                                   rna_sources_numerator,
-                                   condition_id = condition,
-                                   control_id = control)
-    dds_control = initialize_dds(comparison = "control",
-                                   data_path_denominator = exp_table_denominator,
-                                   data_path_numerator = exp_table_numerator,
-                                   samples_denominator,
-                                   samples_numerator,
-                                   conditions_denominator,
-                                   conditions_numerator,
-                                   rna_sources_denominator,
-                                   rna_sources_numerator,
-                                   condition_id = condition,
-                                   control_id = control)
-
     if (norm=="spikenorm"){
-        dds_spike = initialize_dds(comparison = "enrichment_vs_enrichment",
-                                   data_path_denominator=spike_table_denominator,
+        dds_spike = initialize_dds(data_path_denominator=spike_table_denominator,
                                    data_path_numerator=spike_table_numerator,
                                    samples_denominator,
                                    samples_numerator,
@@ -349,42 +323,11 @@ main = function(exp_table_denominator="depleted-v-non-depleted_allsamples-experi
                                    condition_id = condition,
                                    control_id = control) %>%
             estimateSizeFactors()
-        dds_spike_condition = initialize_dds(comparison = "condition",
-                                             data_path_denominator = spike_table_denominator,
-                                             data_path_numerator = spike_table_numerator,
-                                             samples_denominator,
-                                             samples_numerator,
-                                             conditions_denominator,
-                                             conditions_numerator,
-                                             rna_sources_denominator,
-                                             rna_sources_numerator,
-                                             condition_id = condition,
-                                             control_id = control) %>%
-            estimateSizeFactors()
-        dds_spike_control = initialize_dds(comparison = "control",
-                                             data_path_denominator = spike_table_denominator,
-                                             data_path_numerator = spike_table_numerator,
-                                             samples_denominator,
-                                             samples_numerator,
-                                             conditions_denominator,
-                                             conditions_numerator,
-                                             rna_sources_denominator,
-                                             rna_sources_numerator,
-                                             condition_id = condition,
-                                             control_id = control) %>%
-            estimateSizeFactors()
-
         sizeFactors(dds) = sizeFactors(dds_spike)
-        sizeFactors(dds_condition) = sizeFactors(dds_spike_condition)
-        sizeFactors(dds_control) = sizeFactors(dds_spike_control)
     } else {
         dds %<>% estimateSizeFactors()
-        dds_condition %<>% estimateSizeFactors()
-        dds_control %<>% estimateSizeFactors()
     }
     dds %<>% estimateDispersions() %>% nbinomWaldTest()
-    dds_condition %<>% estimateDispersions() %>% nbinomWaldTest()
-    dds_control %<>% estimateDispersions() %>% nbinomWaldTest()
 
     #extract normalized counts and write to file
     counts_norm = extract_normalized_counts(dds = dds)
@@ -403,18 +346,6 @@ main = function(exp_table_denominator="depleted-v-non-depleted_allsamples-experi
     mean_sd_plot_post = mean_sd_plot(df = mean_sd_df_post,
                                      ymax = sd_max,
                                      title = expression(regularized ~ log[2] ~ "counts"))
-
-    enrichment = results(dds_condition, tidy=TRUE) %>%
-        as_tibble() %>%
-        select(row,
-               condition_enrichment = log2FoldChange,
-               condition_enrichment_SE = lfcSE) %>%
-        full_join(results(dds_control, tidy=TRUE) %>%
-                      as_tibble() %>%
-                      select(row,
-                             control_enrichment = log2FoldChange,
-                             control_enrichment_SE = lfcSE),
-                  by = "row")
 
     results_df = extract_deseq_results(dds = dds,
                                        annotations = annotations,

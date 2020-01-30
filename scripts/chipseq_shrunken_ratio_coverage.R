@@ -1,7 +1,7 @@
 library(tidyverse)
 library(magrittr)
 library(DESeq2)
-library(apeglm)
+library(ashr)
 library(gridExtra)
 
 get_countdata = function(path_denominator="H3_chipseq_allsamples-counts-midpoints-window-200.tsv.gz",
@@ -131,9 +131,8 @@ extract_deseq_results = function(dds,
                                  annotations){
     lfc_shrunk = lfcShrink(dds,
                            coef="rna_sourceChIP.chip_factornumerator",
-                           type="apeglm") %>%
+                           type="ashr") %>%
         as_tibble(rownames="index")
-
 
     results(dds,
             tidy=TRUE,
