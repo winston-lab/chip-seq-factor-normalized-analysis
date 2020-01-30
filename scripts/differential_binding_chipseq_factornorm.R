@@ -10,11 +10,11 @@ get_countdata = function(path_denominator,
                          samples_numerator){
 
     df = read_tsv(path_denominator) %>%
-        select(1:6, samples_denominator) %>%
+        select(1:6, all_of(samples_denominator)) %>%
         magrittr::set_colnames(c("chrom", "start", "end", "name", "score", "strand",
                                  paste0(samples_denominator, "_D"))) %>%
         full_join(read_tsv(path_numerator) %>%
-                      select(1:6, samples_numerator) %>%
+                      select(1:6, all_of(samples_numerator)) %>%
                       magrittr::set_colnames(c("chrom", "start", "end", "name", "score", "strand",
                                                paste0(samples_numerator, "_N"))),
                   by=c("chrom", "start", "end", "name", "score", "strand")) %>%
