@@ -38,8 +38,8 @@ rule cat_matrices:
     input:
         lambda wc: expand("datavis/{{figure}}/{{norm}}/{annotation}_{sample}-{{norm}}-{{strand}}-melted.tsv.gz",
                           annotation=list(FIGURES[wc.figure]["annotations"].keys()),
-                          sample={"libsizenorm": set(conditiongroups + controlgroups),
-                                  "spikenorm": set(conditiongroups_si + controlgroups_si)}.get(wc.norm) if wc.strand=="ratio" else \
+                          sample={"libsizenorm": set(conditiongroups + controlgroups) if comparisons else [],
+                                  "spikenorm": set(conditiongroups_si + controlgroups_si) if comparisons_si else []}.get(wc.norm) if wc.strand=="ratio" else \
                                   get_samples(paired=True,
                                               passing=True,
                                               spikein=(wc.norm == "spikenorm")))

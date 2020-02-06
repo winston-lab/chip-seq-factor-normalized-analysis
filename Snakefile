@@ -107,7 +107,7 @@ rule target:
         expand("coverage/ratio_coverage/spikenorm/{group}_{nfactor}-over-{dfactor}_spikenorm-ratio-coverage-window-{windowsize}.bw",
                nfactor=FACTORS["numerator"],
                dfactor=FACTORS["denominator"],
-               group=set(conditiongroups + controlgroups),
+               group=set(conditiongroups_si + controlgroups_si),
                windowsize=config["coverage_binsize"]) if comparisons_si else [],
         expand(expand("datavis/{{figure}}/libsizenorm/{condition}-v-{control}/{{strand}}/{{figure}}_{condition}-v-{control}_{{nfactor}}-over-{{dfactor}}_libsizenorm-ratio-{{strand}}-ridgelines.svg",
                zip, condition=conditiongroups, control=controlgroups),
