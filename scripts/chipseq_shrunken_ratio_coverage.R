@@ -238,8 +238,10 @@ main = function(exp_table_denominator="H3_chipseq_allsamples-counts-midpoints-wi
     results_df %>%
         select(-index) %>%
         write_tsv(results_all_out) %>%
-        select(chrom, start, end, log2FoldChange_shrunken) %>%
-        replace_na(list("log2FoldChange_shrunken"=0)) %>%
+        # select(chrom, start, end, log2FoldChange_shrunken) %>%
+        # replace_na(list("log2FoldChange_shrunken"=0)) %>%
+        select(chrom, start, end, log2FoldChange_original) %>%
+        replace_na(list("log2FoldChange_original"=0)) %>%
         arrange(chrom, start) %>%
         write_tsv(bedgraph_out,
                   col_names=FALSE)
