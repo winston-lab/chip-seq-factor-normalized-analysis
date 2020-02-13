@@ -1,0 +1,6 @@
+name: factor_ratio
+channels:
+    - conda-forge
+    - bioconda
+dependencies:
+    - pybigwig=0.3.17
