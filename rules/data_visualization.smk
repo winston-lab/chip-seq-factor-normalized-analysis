@@ -7,13 +7,13 @@ localrules:
 rule compute_matrix:
     input:
         annotation = lambda wc: FIGURES[wc.figure]["annotations"][wc.annotation]["path"],
-        bw = lambda wc: f"coverage/ratio_coverage/{{norm}}/{{sample}}_{FACTORS['numerator']}-over-{FACTORS['denominator']}_{{norm}}-ratio-coverage-window-{config['coverage_binsize']}.bw" if wc.strand == "ratio" else denominator_pipe(f"coverage/{{norm}}/{{sample}}_{FACTORS['denominator']}-chipseq-{{norm}}-{{strand}}.bw"),
+        bw = lambda wc: f"coverage/ratio_coverage/{{norm}}/{{sample}}_{FACTORS['numerator']}-over-{FACTORS['denominator']}_{{norm}}-standard-difference.bw" if wc.strand == "factor_ratio" else denominator_pipe(f"coverage/{{norm}}/{{sample}}_{FACTORS['denominator']}-chipseq-{{norm}}-ratio.bw"),
     output:
         dtfile = temp("datavis/{figure}/{norm}/{annotation}_{sample}-{norm}-{strand}.mat.gz"),
         matrix = temp("datavis/{figure}/{norm}/{annotation}_{sample}-{norm}-{strand}.tsv"),
         melted = temp("datavis/{figure}/{norm}/{annotation}_{sample}-{norm}-{strand}-melted.tsv.gz"),
     params:
-        group = lambda wc: wc.sample if wc.strand == "ratio" else SAMPLES["denominator"][wc.sample]["group"],
+        group = lambda wc: wc.sample if wc.strand == "factor_ratio" else SAMPLES["denominator"][wc.sample]["group"],
         refpoint = lambda wc: "TSS" if FIGURES[wc.figure]["parameters"]["type"]=="scaled" else FIGURES[wc.figure]["parameters"]["refpoint"],
         upstream = lambda wc: FIGURES[wc.figure]["parameters"]["upstream"] + FIGURES[wc.figure]["parameters"]["binsize"],
         dnstream = lambda wc: FIGURES[wc.figure]["parameters"]["dnstream"] + FIGURES[wc.figure]["parameters"]["binsize"],
@@ -39,7 +39,7 @@ rule cat_matrices:
         lambda wc: expand("datavis/{{figure}}/{{norm}}/{annotation}_{sample}-{{norm}}-{{strand}}-melted.tsv.gz",
                           annotation=list(FIGURES[wc.figure]["annotations"].keys()),
                           sample={"libsizenorm": set(conditiongroups + controlgroups) if comparisons else [],
-                                  "spikenorm": set(conditiongroups_si + controlgroups_si) if comparisons_si else []}.get(wc.norm) if wc.strand=="ratio" else \
+                                  "spikenorm": set(conditiongroups_si + controlgroups_si) if comparisons_si else []}.get(wc.norm) if wc.strand=="factor_ratio" else \
                                   get_samples(paired=True,
                                               passing=True,
                                               spikein=(wc.norm == "spikenorm")))
@@ -54,15 +54,15 @@ rule cat_matrices:
 rule plot_figures:
     input:
         annotations = lambda wc: [v["path"] for k,v in FIGURES[wc.figure]["annotations"].items()],
-        denominator = "datavis/{figure}/{norm}/{figure}-allsamples-allannotations-chipseq-{norm}-{strand}.tsv.gz",
-        ratio = "datavis/{figure}/{norm}/{figure}-allsamples-allannotations-chipseq-{norm}-ratio.tsv.gz"
+        denominator = "datavis/{figure}/{norm}/{figure}-allsamples-allannotations-chipseq-{norm}-ratio.tsv.gz",
+        ratio = "datavis/{figure}/{norm}/{figure}-allsamples-allannotations-chipseq-{norm}-factor_ratio.tsv.gz"
     output:
-        ratio_heatmap = "datavis/{figure}/{norm}/{condition}-v-{control}/{strand}/{figure}_{condition}-v-{control}_{nfactor}-over-{dfactor}_{norm}-ratio-heatmap.svg",
-        ratio_metagene = "datavis/{figure}/{norm}/{condition}-v-{control}/{strand}/{figure}_{condition}-v-{control}_{nfactor}-over-{dfactor}_{norm}-ratio-metagene.svg",
-        ridgelines = "datavis/{figure}/{norm}/{condition}-v-{control}/{strand}/{figure}_{condition}-v-{control}_{nfactor}-over-{dfactor}_{norm}-ratio-{strand}-ridgelines.svg"
+        ratio_heatmap = "datavis/{figure}/{norm}/{condition}-v-{control}/{figure}_{condition}-v-{control}_{nfactor}-over-{dfactor}_{norm}-ratio-heatmap.svg",
+        ratio_metagene = "datavis/{figure}/{norm}/{condition}-v-{control}/{figure}_{condition}-v-{control}_{nfactor}-over-{dfactor}_{norm}-ratio-metagene.svg",
+        ridgelines = "datavis/{figure}/{norm}/{condition}-v-{control}/{figure}_{condition}-v-{control}_{nfactor}-over-{dfactor}_{norm}-ratio-ridgelines.svg"
     params:
         # abusing snakemake a bit here...using params as output paths since in order to use lambda functions
-        annotations_out = lambda wc: expand(f"datavis/{wc.figure}/{wc.norm}/{wc.condition}-v-{wc.control}/{wc.strand}/{{annotation}}.bed", annotation=FIGURES[wc.figure]["annotations"]),
+        annotations_out = lambda wc: expand(f"datavis/{wc.figure}/{wc.norm}/{wc.condition}-v-{wc.control}/{{annotation}}.bed", annotation=FIGURES[wc.figure]["annotations"]),
         length_sort = lambda wc: FIGURES[wc.figure]["parameters"]["length_sort"],
         distance_type = lambda wc: FIGURES[wc.figure]["parameters"]["type"],
         scaled_length = lambda wc: 0 if FIGURES[wc.figure]["parameters"]["type"]=="absolute" else FIGURES[wc.figure]["parameters"]["scaled_length"],

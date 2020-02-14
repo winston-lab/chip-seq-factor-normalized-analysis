@@ -33,8 +33,6 @@ comparisons:
     spikenorm:
         - depleted: non-depleted
 
-coverage_binsize: 20
-
 differential_occupancy:
     fdr: 0.1
     fold-change-threshold: 1

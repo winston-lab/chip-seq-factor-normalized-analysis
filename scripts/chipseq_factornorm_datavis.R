@@ -286,7 +286,7 @@ main = function(annotation_paths = c("Scer_transcripts_w_verifiedORFs-nonoverlap
                                              textstyle(frac(.(nfactor),
                                                             .(dfactor))))) +
         scale_y_discrete(expand=c(0,0),
-                         name=bquote("relative" ~ .(dfactor) ~ "levels")) +
+                         name=bquote("relative" ~ .(dfactor) ~ "enrichment")) +
         theme_light() +
         theme(axis.text=element_text(color="black"),
               axis.text.y=element_text(vjust=0),
