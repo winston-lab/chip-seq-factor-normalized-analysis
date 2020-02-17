@@ -40,6 +40,8 @@ differential_occupancy:
         verified-coding-genes:
             experimental-annotation: /n/groups/winston/jc459/intragenic/genome/annotations/Scer_transcripts_w_verifiedORFs.bed
             spikein-annotation: /n/groups/winston/jc459/spt5/genome/annotations/S_pombe_alltranscripts-adjustedTSS.bed
+shifts:
+    nonoverlapping-coding-genes: /n/groups/winston/jc459/intragenic/genome/annotations/Scer_transcripts_w_verifiedORFs-nonoverlapping.bed
 
 plot_figures: True  # [True|False] plot heatmaps and metagenes?
 figures:
