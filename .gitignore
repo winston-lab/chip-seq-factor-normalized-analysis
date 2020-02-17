@@ -3,6 +3,7 @@ logs/cluster/*
 .snakemake/
 coverage/
 diff_binding/
+shifts/
 datavis/
 scripts/.snakemake*
 snakemake.err

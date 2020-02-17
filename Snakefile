@@ -81,6 +81,7 @@ def get_samples(search_dict=CHIPS["denominator"],
 include: "rules/differential_binding.smk"
 include: "rules/genome_coverage.smk"
 include: "rules/data_visualization.smk"
+include: "rules/shifts.smk"
 
 onsuccess:
     shell("(./mogrify.sh) > mogrify.log")
@@ -116,5 +117,21 @@ rule target:
                zip, condition=conditiongroups_si, control=controlgroups_si),
                figure=FIGURES,
                nfactor=FACTORS["numerator"],
-               dfactor=FACTORS["denominator"]) if comparisons_si and config["plot_figures"] else []
+               dfactor=FACTORS["denominator"]) if comparisons_si and config["plot_figures"] else [],
+        expand(expand("shifts/{{annotation}}/{condition}-v-{control}/{condition}-v-{control}_{{nfactor}}-over-{{dfactor}}-chipseq-{{annotation}}-shifts.tsv",
+                      zip,
+                      condition=conditiongroups,
+                      control=controlgroups),
+               annotation=list(config["shifts"].keys() if config["shifts"] else []),
+               nfactor=FACTORS["numerator"],
+               dfactor=FACTORS["denominator"]) if comparisons else [],
+        expand(expand("shifts/{{annotation}}/{condition}-v-{control}/{condition}-v-{control}_{{nfactor}}-over-{{dfactor}}-chipseq-{{annotation}}-shifts.tsv",
+                      zip,
+                      condition=conditiongroups_si,
+                      control=controlgroups_si),
+               annotation=list(config["shifts"].keys() if config["shifts"] else []),
+               nfactor=FACTORS["numerator"],
+               dfactor=FACTORS["denominator"]) if comparisons_si else [],
+
+
 
