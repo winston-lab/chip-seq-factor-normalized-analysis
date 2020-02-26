@@ -27,6 +27,20 @@ chip_samples:
         - depleted-Ser2P-IP-1
         - depleted-Ser2P-IP-2
 
+matched_samples:
+    non-depleted-1:
+        numerator: non-depleted-Spn1-IP-1
+        denominator: non-depleted-Rpb1-IP-3
+    non-depleted-2:
+        numerator: non-depleted-Spn1-IP-2
+        denominator: non-depleted-Rpb1-IP-4
+    depleted-1:
+        numerator: depleted-Spn1-IP-1
+        denominator: depleted-Rpb1-IP-3
+    depleted-2:
+        numerator: depleted-Spn1-IP-2
+        denominator: depleted-Rpb1-IP-4
+
 comparisons:
     libsizenorm:
         - depleted: non-depleted
