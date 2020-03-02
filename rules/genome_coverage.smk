@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 localrules:
-    factor_ratio_coverage
+    factor_ratio_coverage,
+    factor_ratio_matched_coverage
 
 rule factor_ratio_coverage:
     input:
