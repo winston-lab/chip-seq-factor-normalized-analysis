@@ -54,8 +54,8 @@ def average_coverage(coverage_paths):
                 coverage[chrom] = bw.values(chrom, 0, size, numpy=True)
             else:
                 coverage[chrom] = np.add(bw.values(chrom, 0, size, numpy=True), coverage[chrom])
-            if index==len(coverage_paths):
-                coverage[chrom] = np.divide(coverage[chrom], index)
+            if index==(len(coverage_paths) - 1):
+                coverage[chrom] = np.divide(coverage[chrom], (index + 1))
         bw.close()
     return coverage
 
