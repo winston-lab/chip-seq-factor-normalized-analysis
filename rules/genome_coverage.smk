@@ -6,20 +6,20 @@ localrules:
 
 rule factor_ratio_coverage:
     input:
-        numerator_paths = lambda wc: expand(numerator_pipe(f"coverage/{wc.norm}/{{sample}}_{{factor}}-chipseq-{wc.norm}-ratio.bw"),
+        numerator_paths = lambda wc: numerator_pipe(expand(f"coverage/{wc.norm}/{{sample}}_{{factor}}-chipseq-{wc.norm}-ratio.bw",
                 sample=get_samples(
                     search_dict=CHIPS["numerator"],
                     paired_search_dict=INPUTS["numerator"],
                     passing=True,
                     spikein=(wc.norm=="spikenorm")),
-                factor=FACTORS["numerator"]),
-        denominator_paths = lambda wc: expand(denominator_pipe(f"coverage/{wc.norm}/{{sample}}_{{factor}}-chipseq-{wc.norm}-ratio.bw"),
+                factor=FACTORS["numerator"])),
+        denominator_paths = lambda wc: denominator_pipe(expand(f"coverage/{wc.norm}/{{sample}}_{{factor}}-chipseq-{wc.norm}-ratio.bw",
                 sample=get_samples(
                     search_dict=CHIPS["denominator"],
                     paired_search_dict=INPUTS["denominator"],
                     passing=True,
                     spikein=(wc.norm=="spikenorm")),
-                factor=FACTORS["denominator"])
+                factor=FACTORS["denominator"]))
     output:
         bigwig = "coverage/ratio_coverage/{norm}/{group}_{nfactor}-over-{dfactor}_{norm}-standard-difference.bw",
     params:
@@ -47,20 +47,20 @@ rule factor_ratio_coverage:
 
 rule factor_ratio_matched_coverage:
     input:
-        numerator_paths = lambda wc: expand(numerator_pipe(f"coverage/{wc.norm}/{{sample}}_{{factor}}-chipseq-{wc.norm}-ratio.bw"),
+        numerator_paths = lambda wc: numerator_pipe(expand(f"coverage/{wc.norm}/{{sample}}_{{factor}}-chipseq-{wc.norm}-ratio.bw",
                 sample=get_samples(
                     search_dict=CHIPS["numerator"],
                     paired_search_dict=INPUTS["numerator"],
                     passing=True,
                     spikein=(wc.norm=="spikenorm")),
-                factor=FACTORS["numerator"]),
-        denominator_paths = lambda wc: expand(denominator_pipe(f"coverage/{wc.norm}/{{sample}}_{{factor}}-chipseq-{wc.norm}-ratio.bw"),
+                factor=FACTORS["numerator"])),
+        denominator_paths = lambda wc: denominator_pipe(expand(f"coverage/{wc.norm}/{{sample}}_{{factor}}-chipseq-{wc.norm}-ratio.bw",
                 sample=get_samples(
                     search_dict=CHIPS["denominator"],
                     paired_search_dict=INPUTS["denominator"],
                     passing=True,
                     spikein=(wc.norm=="spikenorm")),
-                factor=FACTORS["denominator"]),
+                factor=FACTORS["denominator"])),
         numerator_sample = lambda wc: numerator_pipe("coverage/{{norm}}/{nsample}_{factor}-chipseq-{{norm}}-ratio.bw".format(nsample=config["matched_samples"][wc.sample]["numerator"],
             factor=FACTORS["numerator"])),
         denominator_sample = lambda wc: denominator_pipe("coverage/{{norm}}/{dsample}_{factor}-chipseq-{{norm}}-ratio.bw".format(dsample=config["matched_samples"][wc.sample]["denominator"],
